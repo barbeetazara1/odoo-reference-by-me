@@ -1,1 +1,2 @@
-# odoo16-reference-by-me
+# odoo-reference-by-me
+configuration_template (v.16)
