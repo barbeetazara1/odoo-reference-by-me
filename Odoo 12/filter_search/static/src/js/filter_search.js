@@ -55,7 +55,7 @@ odoo.define('ins_base_bsr.ListViewColumnFilter', function (require) {
             this.$el.append(this.$noResultsPage);
 
             this.$noResultsPage.find('.reset-filters').on('click', function () {
-                self._resetFilters();
+                self.trigger_up('reset_filters');
             });
 
             return $thead;
@@ -69,20 +69,24 @@ odoo.define('ins_base_bsr.ListViewColumnFilter', function (require) {
                 this.$el.find('tbody').show();
                 this.$noResultsPage.hide();
             }
-        },
-
-        _resetFilters: function () {
-            var self = this;
-            this.filter_values = {};
-            this.$el.find('.o_list_filter_input').val('');
-            this.trigger_up('filter_data', { fieldName: null, searchText: null });
         }
     });
 
     ListController.include({
         custom_events: _.extend({}, ListController.prototype.custom_events, {
             filter_data: '_onFilterData',
+            reset_filters: '_onResetFilters',
         }),
+
+        /**
+         * Simpan domain awal saat controller pertama kali di-load
+         */
+        willStart: function () {
+            var self = this;
+            return this._super.apply(this, arguments).then(function () {
+                self.initialDomain = self.initialState.domain || []; // Simpan domain bawaan action
+            });
+        },
 
         _onFilterData: function (event) {
             var self = this;
@@ -116,6 +120,20 @@ odoo.define('ins_base_bsr.ListViewColumnFilter', function (require) {
                     self.renderer._updateNoResults(false);
                     self.reload({ domain: domain });
                 }
+            });
+        },
+
+        /**
+         * Reset filter kembali ke domain awal
+         */
+        _onResetFilters: function () {
+            var self = this;
+            this.renderer.filter_values = {}; // Hapus filter input
+            this.renderer.$el.find('.o_list_filter_input').val('');
+
+            // Reload dengan domain awal dari action
+            this.reload({ domain: this.initialDomain }).then(function () {
+                self.renderer._updateNoResults(false); // Sembunyikan pesan "No Results Found"
             });
         }
     });
