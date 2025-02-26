@@ -1,0 +1,19 @@
+<odoo>
+    <data>
+        <!-- add assests (javascript and css) -->
+        <template id="_assets_primary_variables" inherit_id="web._assets_primary_variables">
+            <xpath expr="." position="inside">
+                <link rel="stylesheet" type="text/scss" href="/ins_theme/static/src/scss/colors.scss"/>
+            </xpath>
+        </template>
+        <template id="assets_backend" name="Backend Assets" inherit_id="web.assets_backend">
+		<xpath expr="//link[last()]" position="after">
+            <link rel="stylesheet" type="text/scss" href="/ins_theme/static/src/scss/fields.scss"/>
+            <link rel="stylesheet" type="text/scss" href="/ins_theme/static/src/scss/color_details.scss"/>
+		</xpath>
+        <xpath expr="//script[last()]" position="after">
+			<script type="text/javascript" src="/ins_theme/static/src/js/color.js" />
+		</xpath>
+	</template>
+    </data>
+</odoo>

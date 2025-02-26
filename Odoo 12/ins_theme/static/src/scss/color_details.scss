@@ -1,0 +1,23 @@
+.mk_field_color_picker {
+	.o_opacity_slider {
+		display: none ! important;
+	}
+	input#opacity {
+		display: none ! important;
+	}
+	label[for="opacity"] {
+		display: none ! important;
+	}
+}
+
+.o_field_widget.mk_field_color {
+	.mk_field_color_input {
+	    width: auto;
+		display: inline-block;
+    }
+    .mk_field_color_button {
+		display: inline-block;
+		margin-bottom: 0.25rem;
+    	line-height: 1.42rem;
+    }
+}
