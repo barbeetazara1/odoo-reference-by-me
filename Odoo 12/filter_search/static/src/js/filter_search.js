@@ -1,4 +1,4 @@
-odoo.define('ins_base_bsr.ListViewColumnFilter', function (require) {
+odoo.define('filter_search.ListViewColumnFilter', function (require) {
     "use strict";
 
     var ListRenderer = require('web.ListRenderer');
@@ -10,40 +10,68 @@ odoo.define('ins_base_bsr.ListViewColumnFilter', function (require) {
         _renderHeader: function () {
             var $thead = this._super.apply(this, arguments);
             var self = this;
+        
+            // Cek apakah ada .o_x2m_control_panel sebelum tabel
+            var $tableContainer = this.$el.closest('.table-responsive');
+            var $prevElement = $tableContainer.prev('.o_x2m_control_panel');
+        
+            if ($prevElement.length > 0) {
+                console.log("Filter tidak ditampilkan karena ada o_x2m_control_panel.");
+                return $thead; // Tidak menampilkan filter jika ada elemen ini
+            }
+        
             var $filterRow = $('<tr class="o_list_view_filter"></tr>');
-
+        
             this.filter_values = this.filter_values || {};
-
+        
             $thead.find('th').each(function () {
                 var $th = $(this);
                 var fieldName = $th.data('name');
                 var fieldType = self.state.fields[fieldName]?.type;
-
+        
                 if (fieldName) {
                     var inputType = (fieldType === 'date' || fieldType === 'datetime') ? 'date' : 'text';
                     var $input = $('<input>', {
                         type: inputType,
-                        class: 'o_list_filter_input',
+                        class: 'o_list_filter_input form-control',
                         placeholder: 'Filter...',
                         value: self.filter_values[fieldName] || ''
                     });
-
-                    var $filterTh = $('<th></th>').append($input);
+        
+                    var $searchButton = $('<button>', {
+                        class: 'btn btn-sm btn-primary o_list_filter_button',
+                        html: '<i class="fa fa-search"></i>',
+                        'data-field': fieldName
+                    });
+        
+                    var $filterTh = $('<th></th>').append(
+                        $('<div>', { class: 'input-group' }).append($input, $searchButton)
+                    );
+        
                     $filterRow.append($filterTh);
-
-                    $input.on('change keyup', function () {
-                        var searchText = $(this).val().trim();
+        
+                    // Event: Pencarian berjalan saat tombol search ditekan
+                    $searchButton.on('click', function () {
+                        var searchText = $input.val().trim();
                         self.filter_values[fieldName] = searchText;
                         self.trigger_up('filter_data', { fieldName: fieldName, searchText: searchText, fieldType: fieldType });
+                    });
+        
+                    // Event: Pencarian berjalan saat menekan Enter
+                    $input.on('keyup', function (event) {
+                        if (event.key === 'Enter') {
+                            var searchText = $input.val().trim();
+                            self.filter_values[fieldName] = searchText;
+                            self.trigger_up('filter_data', { fieldName: fieldName, searchText: searchText, fieldType: fieldType });
+                        }
                     });
                 } else {
                     $filterRow.append('<th></th>');
                 }
             });
-
+        
             $thead.append($filterRow);
-
-            // Elemen untuk halaman "No Results Found"
+        
             this.$noResultsPage = $(
                 '<div class="o_list_no_results_page" style="display: none; text-align: center; padding: 50px;">' +
                 '<h3>🚀 Oops! No Results Found</h3>' +
@@ -51,15 +79,16 @@ odoo.define('ins_base_bsr.ListViewColumnFilter', function (require) {
                 '<button class="btn btn-primary reset-filters">Reset Filters</button>' +
                 '</div>'
             );
-
+        
             this.$el.append(this.$noResultsPage);
-
+        
             this.$noResultsPage.find('.reset-filters').on('click', function () {
                 self.trigger_up('reset_filters');
             });
-
+        
             return $thead;
         },
+        
 
         _updateNoResults: function (isVisible) {
             if (isVisible) {
@@ -78,13 +107,10 @@ odoo.define('ins_base_bsr.ListViewColumnFilter', function (require) {
             reset_filters: '_onResetFilters',
         }),
 
-        /**
-         * Simpan domain awal saat controller pertama kali di-load
-         */
         willStart: function () {
             var self = this;
             return this._super.apply(this, arguments).then(function () {
-                self.initialDomain = self.initialState.domain || []; // Simpan domain bawaan action
+                self.initialDomain = self.initialState.domain || [];
             });
         },
 
@@ -99,7 +125,7 @@ odoo.define('ins_base_bsr.ListViewColumnFilter', function (require) {
             if (searchText) {
                 this.renderer.filter_values[fieldName] = searchText;
             } else if (fieldName === null) {
-                this.renderer.filter_values = {}; // Reset semua filter
+                this.renderer.filter_values = {};
             } else {
                 delete this.renderer.filter_values[fieldName];
             }
@@ -123,17 +149,13 @@ odoo.define('ins_base_bsr.ListViewColumnFilter', function (require) {
             });
         },
 
-        /**
-         * Reset filter kembali ke domain awal
-         */
         _onResetFilters: function () {
             var self = this;
-            this.renderer.filter_values = {}; // Hapus filter input
+            this.renderer.filter_values = {};
             this.renderer.$el.find('.o_list_filter_input').val('');
 
-            // Reload dengan domain awal dari action
             this.reload({ domain: this.initialDomain }).then(function () {
-                self.renderer._updateNoResults(false); // Sembunyikan pesan "No Results Found"
+                self.renderer._updateNoResults(false);
             });
         }
     });
