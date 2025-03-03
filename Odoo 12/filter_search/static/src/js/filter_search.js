@@ -1,4 +1,4 @@
-odoo.define('filter_search.ListViewColumnFilter', function (require) {
+odoo.define('ins_base_bsr.ListViewColumnFilter', function (require) {
     "use strict";
 
     var ListRenderer = require('web.ListRenderer');
@@ -11,71 +11,82 @@ odoo.define('filter_search.ListViewColumnFilter', function (require) {
             var $thead = this._super.apply(this, arguments);
             var self = this;
         
-            // Cek apakah ada .o_x2m_control_panel sebelum tabel
             var $tableContainer = this.$el.closest('.table-responsive');
             var $prevElement = $tableContainer.prev('.o_x2m_control_panel');
+            var $prevElementButton = $tableContainer.prev('.button_delete_lines');
         
-            if ($prevElement.length > 0) {
+            if ($prevElement.length > 0 || $prevElementButton.length > 0) {
                 console.log("Filter tidak ditampilkan karena ada o_x2m_control_panel.");
-                return $thead; // Tidak menampilkan filter jika ada elemen ini
+                return $thead;
             }
         
             var $filterRow = $('<tr class="o_list_view_filter"></tr>');
-        
             this.filter_values = this.filter_values || {};
         
             $thead.find('th').each(function () {
                 var $th = $(this);
                 var fieldName = $th.data('name');
                 var fieldType = self.state.fields[fieldName]?.type;
+
+                // Abaikan fields dengan tipe boolean
+                if (!fieldName || fieldType === 'boolean') {
+                    $filterRow.append('<th></th>');
+                    return;
+                }
         
-                if (fieldName) {
-                    var inputType = (fieldType === 'date' || fieldType === 'datetime') ? 'date' : 'text';
-                    var $input = $('<input>', {
-                        type: inputType,
-                        class: 'o_list_filter_input form-control',
-                        placeholder: 'Filter...',
-                        value: self.filter_values[fieldName] || ''
-                    });
+                var inputType = (fieldType === 'date' || fieldType === 'datetime') ? 'date' : 'text';
+                var $input = $('<input>', {
+                    type: inputType,
+                    class: 'o_list_filter_input form-control',
+                    placeholder: 'Filter...',
+                    value: self.filter_values[fieldName] || ''
+                });
         
-                    var $searchButton = $('<button>', {
-                        class: 'btn btn-sm btn-primary o_list_filter_button',
-                        html: '<i class="fa fa-search"></i>',
-                        'data-field': fieldName
-                    });
+                var $searchButton = $('<button>', {
+                    class: 'btn btn-sm btn-primary o_list_filter_button',
+                    html: '<i class="fa fa-search"></i>',
+                    'data-field': fieldName
+                });
+
+                var $clearButton = $('<button>', {
+                    class: 'btn btn-sm btn-danger o_list_filter_clear_button',
+                    html: '<i class="fa fa-times"></i>',
+                    'data-field': fieldName
+                });
         
-                    var $filterTh = $('<th></th>').append(
-                        $('<div>', { class: 'input-group' }).append($input, $searchButton)
-                    );
+                var $filterTh = $('<th></th>').append(
+                    $('<div>', { class: 'input-group' }).append($input, $searchButton, $clearButton)
+                );
         
-                    $filterRow.append($filterTh);
+                $filterRow.append($filterTh);
         
-                    // Event: Pencarian berjalan saat tombol search ditekan
-                    $searchButton.on('click', function () {
+                // Event pencarian saat tombol search ditekan
+                $searchButton.on('click', function () {
+                    var searchText = $input.val().trim();
+                    self.filter_values[fieldName] = searchText;
+                    self.trigger_up('filter_data', { fieldName, searchText, fieldType });
+                });
+        
+                // Event pencarian saat menekan Enter
+                $input.on('keyup', function (event) {
+                    if (event.key === 'Enter') {
                         var searchText = $input.val().trim();
                         self.filter_values[fieldName] = searchText;
-                        self.trigger_up('filter_data', { fieldName: fieldName, searchText: searchText, fieldType: fieldType });
-                    });
-        
-                    // Event: Pencarian berjalan saat menekan Enter
-                    $input.on('keyup', function (event) {
-                        if (event.key === 'Enter') {
-                            var searchText = $input.val().trim();
-                            self.filter_values[fieldName] = searchText;
-                            self.trigger_up('filter_data', { fieldName: fieldName, searchText: searchText, fieldType: fieldType });
-                        }
-                    });
-                } else {
-                    $filterRow.append('<th></th>');
-                }
+                        self.trigger_up('filter_data', { fieldName, searchText, fieldType });
+                    }
+                });
+
+                $clearButton.on('click', function () {
+                    self.trigger_up('reset_filters');
+                });
             });
         
             $thead.append($filterRow);
         
             this.$noResultsPage = $(
                 '<div class="o_list_no_results_page" style="display: none; text-align: center; padding: 50px;">' +
-                '<h3>🚀 Oops! No Results Found</h3>' +
-                '<p>Try adjusting your filter criteria or searching with different keywords.</p>' +
+                '<h3>🚀 Oops! Hasil Tidak Ditemukan</h3>' +
+                '<p>Coba sesuaikan kriteria filter Anda atau cari dengan kata kunci yang berbeda.</p>' +
                 '<button class="btn btn-primary reset-filters">Reset Filters</button>' +
                 '</div>'
             );
@@ -88,7 +99,6 @@ odoo.define('filter_search.ListViewColumnFilter', function (require) {
         
             return $thead;
         },
-        
 
         _updateNoResults: function (isVisible) {
             if (isVisible) {
@@ -144,7 +154,7 @@ odoo.define('filter_search.ListViewColumnFilter', function (require) {
                     self.renderer._updateNoResults(true);
                 } else {
                     self.renderer._updateNoResults(false);
-                    self.reload({ domain: domain });
+                    self.reload({ domain });
                 }
             });
         },

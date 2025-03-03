@@ -1,0 +1,10 @@
+<odoo>
+    <data>
+        <!-- add assests (javascript and css) -->
+        <template id="assets_backend" name="filter_search assets_backend" inherit_id="web.assets_backend">
+            <xpath expr="." position="inside">
+                <script type="text/javascript" src="/filter_search/static/src/js/filter_search.js"/>
+            </xpath>
+        </template>
+    </data>
+</odoo>
