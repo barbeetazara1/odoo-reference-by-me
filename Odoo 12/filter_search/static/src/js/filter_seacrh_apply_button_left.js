@@ -89,6 +89,13 @@ odoo.define('ins_base_bsr.ListViewColumnFilter', function (require) {
                     value: self.filter_values[fieldName] || '',
                     'data-field': fieldName
                 });
+                
+                $input.on('keydown', function (e) {
+                    if (e.key === "Enter") {
+                        e.preventDefault();  // Hindari submit form jika ada
+                        $('.o_list_filter_button').trigger('click');
+                    }
+                });
 
                 var $filterTh = $('<th></th>').append($input);
                 $filterRow.append($filterTh);
